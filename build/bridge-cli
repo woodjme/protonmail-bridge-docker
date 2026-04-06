@@ -6,7 +6,8 @@ trap 'rm -f /tmp/bridge-cli.lock' EXIT
 touch /tmp/bridge-cli.lock
 
 echo "Stopping running bridge instance..."
-pkill -9 bridge 2>/dev/null || true
+pkill -9 -f "/protonmail/bridge " 2>/dev/null || true
+pkill -9 -f "/protonmail/proton-bridge" 2>/dev/null || true
 sleep 2
 
 echo "Starting interactive bridge CLI."
