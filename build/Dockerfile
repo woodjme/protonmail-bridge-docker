@@ -17,7 +17,7 @@ WORKDIR /build/
 RUN make build-nogui vault-editor
 
 FROM ${RUNTIME_IMAGE}
-LABEL maintainer="Dan Williams <dancwilliams@github>"
+LABEL maintainer="woodjme"
 
 EXPOSE 25/tcp
 EXPOSE 143/tcp

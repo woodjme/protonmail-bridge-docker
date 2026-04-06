@@ -1,6 +1,6 @@
 services:
   protonmail-bridge:
-    image: dancwilliams/protonmail-bridge:latest@sha256:83a1eff7c32a084732d3e4954ba7d6498f5de2e03b7c27a992addf8485c676e8
+    image: ghcr.io/woodjme/protonmail-bridge-docker:latest
     ports:
       - 1025:25/tcp
       - 1143:143/tcp
