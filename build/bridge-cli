@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Prevent entrypoint from restarting bridge while we're interactive
+trap 'rm -f /tmp/bridge-cli.lock' EXIT
+touch /tmp/bridge-cli.lock
+
 echo "Stopping running bridge instance..."
 pkill proton-bridge 2>/dev/null || true
 sleep 1

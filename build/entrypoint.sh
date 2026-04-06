@@ -31,6 +31,12 @@ while true; do
     /protonmail/proton-bridge --cli < /tmp/faketty &
     echo $! > /tmp/bridge.pid
     wait $! || true
+
+    # If bridge-cli is running, wait for it to finish before restarting
+    while [ -f /tmp/bridge-cli.lock ]; do
+        sleep 1
+    done
+
     echo "Bridge exited, restarting in 2s..."
     sleep 2
 done
