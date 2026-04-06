@@ -32,7 +32,7 @@ RUN apt-get -o Acquire::http::Timeout=30 update \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy bash scripts
-COPY gpgparams entrypoint.sh /protonmail/
+COPY gpgparams entrypoint.sh bridge-cli /protonmail/
 
 # Copy protonmail
 COPY --from=build /build/bridge /protonmail/
@@ -41,6 +41,7 @@ COPY --from=build /build/vault-editor /protonmail/
 
 # Prevent the bridge's built-in auto-updater from replacing the container binary at runtime.
 # Version management is handled externally via the update-check workflow.
-RUN chmod -w /protonmail/bridge /protonmail/proton-bridge /protonmail/vault-editor
+RUN chmod -w /protonmail/bridge /protonmail/proton-bridge /protonmail/vault-editor \
+    && ln -s /protonmail/bridge-cli /usr/local/bin/bridge-cli
 
 ENTRYPOINT ["bash", "/protonmail/entrypoint.sh"]

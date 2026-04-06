@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+echo "Stopping running bridge instance..."
+pkill proton-bridge 2>/dev/null || true
+sleep 1
+
+echo "Starting interactive bridge CLI."
+echo "Bridge will restart automatically when you exit."
+echo ""
+
+/protonmail/proton-bridge --cli

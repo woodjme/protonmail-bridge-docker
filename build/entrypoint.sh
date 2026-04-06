@@ -1,48 +1,36 @@
 #!/bin/bash
+set -e
 
-set -ex
+INIT_MARKER="/root/.initialized"
 
-# Workaround for stale gpg-agent socket causing auth failures on restart
-# Cleans up leftover sockets in the GPG home directory
-if [ -d /root/.gnupg ]; then
-    rm -f /root/.gnupg/S.gpg-agent*
-fi
+# Clean stale GPG sockets from previous runs
+rm -f /root/.gnupg/S.gpg-agent* 2>/dev/null || true
 
-# Initialize
-if [[ $1 == init ]]; then
-
-    # Initialize pass
+# Auto-init GPG/pass on first run
+if [ ! -f "$INIT_MARKER" ]; then
+    echo "First run — initializing GPG keyring and pass store..."
     gpg --generate-key --batch /protonmail/gpgparams
     pass init pass-key
-
-    # Kill the other instance as only one can be running at a time.
-    # This allows users to run entrypoint init inside a running conainter
-    # which is useful in a k8s environment.
-    # || true to make sure this would not fail in case there is no running instance.
-    pkill protonmail-bridge || true
-
-    # Login
-    /protonmail/proton-bridge --cli $@
-
-else
-
-    # socat will make the conn appear to come from 127.0.0.1
-    # ProtonMail Bridge currently expects that.
-    # It also allows us to bind to the real ports :)
-    socat TCP-LISTEN:25,fork TCP:127.0.0.1:1025 &
-    socat TCP-LISTEN:143,fork TCP:127.0.0.1:1143 &
-
-    # Start protonmail
-    # Fake a terminal, so it does not quit because of EOF...
-    rm -f faketty
-    mkfifo faketty
-
-    # Keep faketty open indefinitely (more stable than cat pipe over long uptimes)
-    sleep infinity > faketty &
-
-    # Start bridge reading from faketty; wait so container exits with bridge's exit code
-    /protonmail/proton-bridge --cli $@ < faketty &
-    wait $!
-    exit $?
-
+    touch "$INIT_MARKER"
 fi
+
+# Port forwarding (bridge listens on 1025/1143, expose on 25/143)
+socat TCP-LISTEN:25,fork TCP:127.0.0.1:1025 &
+socat TCP-LISTEN:143,fork TCP:127.0.0.1:1143 &
+
+# Keep stdin open so bridge CLI doesn't exit on EOF
+rm -f /tmp/faketty
+mkfifo /tmp/faketty
+sleep infinity > /tmp/faketty &
+
+# Clean exit on SIGTERM (k8s pod termination)
+trap 'kill $(cat /tmp/bridge.pid) 2>/dev/null; exit 0' SIGTERM SIGINT
+
+# Restart loop — survives pkill so users can exec in and run bridge-cli
+while true; do
+    /protonmail/proton-bridge --cli < /tmp/faketty &
+    echo $! > /tmp/bridge.pid
+    wait $! || true
+    echo "Bridge exited, restarting in 2s..."
+    sleep 2
+done
