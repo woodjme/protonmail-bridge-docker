@@ -12,7 +12,7 @@ on:
 env:
   GHCR_REPO: ghcr.io/woodjme/protonmail-bridge-docker
   DOCKER_REPO_DEV: ghcr.io/woodjme/protonmail-bridge
-  PLATFORMS: linux/amd64,linux/arm64/v8,linux/riscv64
+  PLATFORMS: linux/amd64,linux/arm64/v8
 
 jobs:
   changes:
@@ -106,8 +106,6 @@ jobs:
             runner: ubuntu-latest
           - platform: linux/arm64/v8
             runner: ubuntu-24.04-arm  # native arm64 runner, no QEMU needed
-          - platform: linux/riscv64
-            runner: ubuntu-latest     # QEMU required; CGO compilation is slow
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -116,12 +114,6 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
-          # debian:bookworm-slim has no riscv64 image; fall back to sid-slim for that platform
-          if [ "$platform" = "linux/riscv64" ]; then
-            echo "RUNTIME_IMAGE=debian:sid-slim@sha256:30128782ec2a5b0595723b21ee6be29adc2959a97fbff2b7cf5f582d28a5464b" >> $GITHUB_ENV
-          else
-            echo "RUNTIME_IMAGE=debian:bookworm-slim@sha256:74d56e3931e0d5a1dd51f8c8a2466d21de84a271cd3b5a733b803aa91abf4421" >> $GITHUB_ENV
-          fi
 
       - name: Set version
         run: echo "version=$(cat VERSION)" >> $GITHUB_ENV
@@ -151,7 +143,6 @@ jobs:
           sbom: true
           build-args: |
             version=${{ env.version }}
-            RUNTIME_IMAGE=${{ env.RUNTIME_IMAGE }}
 
       - name: Export digest
         run: |
@@ -250,7 +241,7 @@ jobs:
           **Image:**
           - \`docker pull ${{ env.GHCR_REPO }}:${{ env.version }}\`
 
-          **Platforms:** linux/amd64, linux/arm64/v8, linux/riscv64
+          **Platforms:** linux/amd64, linux/arm64/v8
 
           ---
 
